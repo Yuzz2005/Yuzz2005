@@ -131,10 +131,10 @@ public class StudentDAO {
     /**
      * 删除学生
      */
-    public boolean deleteStudent(String studentId) {
-        String sql = "DELETE FROM students WHERE student_id = ?";
+    public boolean deleteStudent(int id) {
+        String sql = "DELETE FROM students WHERE id = ?";
         try (PreparedStatement pstmt = dbManager.getConnection().prepareStatement(sql)) {
-            pstmt.setString(1, studentId);
+            pstmt.setInt(1, id);
             
             int rowsAffected = pstmt.executeUpdate();
             return rowsAffected > 0;

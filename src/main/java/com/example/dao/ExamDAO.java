@@ -195,7 +195,7 @@ public class ExamDAO {
         String sql = "INSERT INTO exam_records (student_id, subject, score, total_questions, exam_date) VALUES (?, ?, ?, ?, ?)";
         
         try (Connection conn = dbManager.getConnection();
-             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+             PreparedStatement pstmt = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
             
             pstmt.setString(1, record.getStudentId());
             pstmt.setString(2, record.getSubject());
@@ -203,7 +203,17 @@ public class ExamDAO {
             pstmt.setInt(4, record.getTotalQuestions());
             pstmt.setTimestamp(5, new Timestamp(record.getExamDate().getTime()));
             
-            return pstmt.executeUpdate() > 0;
+            int affectedRows = pstmt.executeUpdate();
+
+            if (affectedRows > 0) {
+                try (ResultSet generatedKeys = pstmt.getGeneratedKeys()) {
+                    if (generatedKeys.next()) {
+                        record.setId(generatedKeys.getInt(1));
+                        return true;
+                    }
+                }
+            }
+            return false;
         } catch (SQLException e) {
             e.printStackTrace();
             return false;
