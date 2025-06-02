@@ -14,8 +14,17 @@ import javax.swing.DefaultCellEditor;
 import javax.swing.table.TableCellRenderer;
 import javax.swing.table.TableColumn;
 import java.awt.*;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
+import javax.swing.*;
+import javax.swing.table.DefaultTableModel;
+import javax.swing.DefaultCellEditor;
+import javax.swing.table.TableCellRenderer;
+import javax.swing.table.TableColumn;
+import java.awt.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -42,6 +51,13 @@ public class StudentPanel extends JPanel {
     private ButtonGroup answerGroup;
     private JButton prevButton, nextButton, submitButton;
     private JLabel questionCountLabel;
+    private JLabel timerLabel; // 用于显示考试时间
+    private Timer examTimer; // 考试计时器
+    private int remainingTime; // 剩余时间，单位秒
+
+    // 题目目录相关组件
+    private JPanel questionDirectoryPanel; // 题目目录面板
+    private List<JButton> questionButtons; // 存储题目按钮的列表
 
     // Panel names for student's internal card layout
     private static final String STUDENT_MENU_PANEL = "STUDENT_MENU";
@@ -54,9 +70,11 @@ public class StudentPanel extends JPanel {
         this.studentAnswerDetailDAO = mainFrame.getStudentAnswerDetailDAO();
         this.studentAnswers = new HashMap<>();
         this.currentQuestions = new ArrayList<>();
+        this.questionButtons = new ArrayList<>();
 
         studentCardLayout = new CardLayout();
         mainContentPanel = new JPanel(studentCardLayout);
+        mainContentPanel.setBackground(new Color(230, 240, 250)); // Set background color to match login panel
 
         // 创建并添加学生主菜单面板
         mainContentPanel.add(createStudentMainMenuPanel(), STUDENT_MENU_PANEL);
@@ -71,22 +89,33 @@ public class StudentPanel extends JPanel {
 
     private JPanel createStudentMainMenuPanel() {
         JPanel menuPanel = new JPanel(new BorderLayout());
-        menuPanel.setBackground(new Color(248, 248, 255));
+        menuPanel.setBackground(new Color(230, 240, 250)); // Set background color to match login panel
         
-        JPanel topPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
-        topPanel.setBackground(new Color(248, 248, 255));
+        JPanel topPanel = new JPanel(new BorderLayout()); // Change to BorderLayout
+        topPanel.setBackground(new Color(230, 240, 250)); // Set background color to match login panel
+        
+        // Panel to hold welcome label for centering
+        JPanel welcomePanel = new JPanel(new FlowLayout(FlowLayout.CENTER));
+        welcomePanel.setOpaque(false);
         welcomeLabel = new JLabel("欢迎学生: " + currentStudent.getName() + "  ");
-        welcomeLabel.setFont(new Font("微软雅黑", Font.BOLD, 16));
-        topPanel.add(welcomeLabel);
+        welcomeLabel.setFont(new Font("微软雅黑", Font.BOLD, 22));
+        welcomePanel.add(welcomeLabel);
         
+        topPanel.add(welcomePanel, BorderLayout.CENTER); // Add welcome panel to center
+
         JButton logoutButton = new JButton("退出登录");
-        logoutButton.setFont(new Font("微软雅黑", Font.PLAIN, 14));
+        logoutButton.setFont(new Font("微软雅黑", Font.PLAIN, 18));
         logoutButton.addActionListener(e -> mainFrame.logout());
-        topPanel.add(logoutButton);
+        
+        JPanel logoutPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT)); // Panel to hold logout button
+        logoutPanel.setOpaque(false);
+        logoutPanel.add(logoutButton);
+        
+        topPanel.add(logoutPanel, BorderLayout.EAST); // Add logout button panel to east
         menuPanel.add(topPanel, BorderLayout.NORTH);
         
         JPanel centerPanel = new JPanel(new GridBagLayout());
-        centerPanel.setBackground(new Color(248, 248, 255));
+        centerPanel.setBackground(new Color(230, 240, 250)); // Set background color to match login panel
         GridBagConstraints gbc = new GridBagConstraints();
         gbc.insets = new Insets(20, 20, 20, 20);
         gbc.ipadx = 30; //增加按钮宽度
@@ -140,24 +169,66 @@ public class StudentPanel extends JPanel {
         
         studentAnswers.clear();
         currentQuestionIndex = 0;
+        createQuestionDirectory(); // 创建题目目录
         displayQuestion(currentQuestions.get(currentQuestionIndex));
+        updateQuestionButtonColors(); // 初始化按钮颜色
         studentCardLayout.show(mainContentPanel, STUDENT_EXAM_PANEL); // 切换到考试面板
+        
+        // 初始化并启动计时器
+        remainingTime = currentQuestions.size() * 20; // 每道题20秒
+        updateTimerLabel();
+        if (examTimer != null && examTimer.isRunning()) {
+            examTimer.stop();
+        }
+        examTimer = new Timer(1000, new java.awt.event.ActionListener() {
+            @Override
+            public void actionPerformed(java.awt.event.ActionEvent e) {
+                remainingTime--;
+                updateTimerLabel();
+                if (remainingTime <= 0) {
+                    examTimer.stop();
+                    JOptionPane.showMessageDialog(StudentPanel.this, "考试时间到！系统将自动提交您的答案。", "时间到", JOptionPane.WARNING_MESSAGE);
+                    submitExam();
+                }
+            }
+        });
+        examTimer.start();
     }
+    
+
+    
+
     
     private JPanel createExamPanelInternal() { // Renamed to avoid conflict
         JPanel panel = new JPanel(new BorderLayout());
         panel.setBorder(BorderFactory.createEmptyBorder(20, 20, 20, 20));
+        panel.setBackground(new Color(230, 240, 250)); // Set background color to match login panel
         
         JPanel infoPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
         questionCountLabel = new JLabel();
         questionCountLabel.setFont(new Font("微软雅黑", Font.PLAIN, 14));
         infoPanel.add(questionCountLabel);
+
+        timerLabel = new JLabel("考试时间：00:00");
+        timerLabel.setFont(new Font("微软雅黑", Font.BOLD, 16));
+        timerLabel.setForeground(Color.RED);
+        infoPanel.add(Box.createHorizontalStrut(50)); // 添加一些间隔
+        infoPanel.add(timerLabel);
+
         panel.add(infoPanel, BorderLayout.NORTH);
         
         questionDisplayArea = new JPanel();
         questionDisplayArea.setLayout(new BoxLayout(questionDisplayArea, BoxLayout.Y_AXIS));
         JScrollPane scrollPane = new JScrollPane(questionDisplayArea);
         panel.add(scrollPane, BorderLayout.CENTER);
+
+        // 创建题目目录面板
+        questionDirectoryPanel = new JPanel();
+        questionDirectoryPanel.setLayout(new BoxLayout(questionDirectoryPanel, BoxLayout.Y_AXIS));
+        questionDirectoryPanel.setBorder(BorderFactory.createTitledBorder("题目目录"));
+        JScrollPane directoryScrollPane = new JScrollPane(questionDirectoryPanel);
+        directoryScrollPane.setPreferredSize(new Dimension(150, 0)); // 设置目录面板的推荐宽度
+        panel.add(directoryScrollPane, BorderLayout.EAST);
         
         JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.CENTER, 20, 10));
         prevButton = new JButton("上一题");
@@ -205,6 +276,8 @@ public class StudentPanel extends JPanel {
         questionCountLabel.setText(String.format("第 %d/%d 题", currentQuestionIndex + 1, currentQuestions.size()));
         prevButton.setEnabled(currentQuestionIndex > 0);
         nextButton.setEnabled(currentQuestionIndex < currentQuestions.size() - 1);
+
+        updateQuestionButtonColors(); // 更新按钮颜色
         
         questionDisplayArea.revalidate();
         questionDisplayArea.repaint();
@@ -289,6 +362,11 @@ public class StudentPanel extends JPanel {
             displayQuestion(currentQuestions.get(currentQuestionIndex));
         }
     }
+    
+    @Override
+    public void addNotify() {
+        super.addNotify();
+    }
 
     private void saveCurrentAnswer() {
         if (currentQuestions.isEmpty() || currentQuestionIndex < 0 || currentQuestionIndex >= currentQuestions.size()) {
@@ -329,6 +407,7 @@ public class StudentPanel extends JPanel {
                 break;
         }
         studentAnswers.put(currentQuestion.getId(), answer);
+        updateQuestionButtonColors(); // 更新按钮颜色
     }
 
     private void submitExam() {
@@ -348,9 +427,17 @@ public class StudentPanel extends JPanel {
         } else {
             JOptionPane.showMessageDialog(this, "提交考试失败或未能保存考试记录！", "错误", JOptionPane.ERROR_MESSAGE);
         }
+        // 停止计时器
+        if (examTimer != null && examTimer.isRunning()) {
+            examTimer.stop();
+        }
         studentCardLayout.show(mainContentPanel, STUDENT_MENU_PANEL); // 返回学生主菜单
     }
     
+    @Override
+    public void setVisible(boolean aFlag) {
+        super.setVisible(aFlag);
+    }
     private void showExamHistory() {
         List<ExamRecord> records = examService.getStudentExamHistory(currentStudent.getStudentId());
         if (records.isEmpty()) {
@@ -473,6 +560,56 @@ public class StudentPanel extends JPanel {
         }
     }
 
+    private void createQuestionDirectory() {
+        questionDirectoryPanel.removeAll();
+        questionButtons.clear();
+        for (int i = 0; i < currentQuestions.size(); i++) {
+            JButton questionButton = new JButton("题目 " + (i + 1));
+            final int questionIdx = i;
+            questionButton.addActionListener(e -> {
+                saveCurrentAnswer(); // 保存当前题目答案
+                currentQuestionIndex = questionIdx;
+                displayQuestion(currentQuestions.get(currentQuestionIndex));
+                updateQuestionButtonColors(); // 更新按钮颜色
+            });
+            questionDirectoryPanel.add(questionButton);
+            questionButtons.add(questionButton);
+        }
+        questionDirectoryPanel.revalidate();
+        questionDirectoryPanel.repaint();
+    }
+
+    private void updateQuestionButtonColors() {
+        for (int i = 0; i < questionButtons.size(); i++) {
+            JButton button = questionButtons.get(i);
+            if (studentAnswers.containsKey(currentQuestions.get(i).getId()) && 
+                studentAnswers.get(currentQuestions.get(i).getId()) != null && 
+                !studentAnswers.get(currentQuestions.get(i).getId()).isEmpty()) {
+                button.setBackground(Color.BLUE);
+                button.setForeground(Color.WHITE); // 设置文字颜色以便在蓝色背景下可见
+            } else {
+                button.setBackground(null); // 恢复默认背景色
+                button.setForeground(null); // 恢复默认前景色
+            }
+            // 高亮当前题目按钮
+            if (i == currentQuestionIndex) {
+                button.setBackground(Color.ORANGE); 
+            } else if (!(studentAnswers.containsKey(currentQuestions.get(i).getId()) && 
+                         studentAnswers.get(currentQuestions.get(i).getId()) != null && 
+                         !studentAnswers.get(currentQuestions.get(i).getId()).isEmpty())) {
+                // 如果不是当前题目，且未作答，则恢复默认颜色
+                button.setBackground(null);
+                button.setForeground(null);
+            }
+        }
+    }
+
+    private void updateTimerLabel() {
+        int minutes = remainingTime / 60;
+        int seconds = remainingTime % 60;
+        timerLabel.setText(String.format("考试时间：%02d:%02d", minutes, seconds));
+    }
+
     class ButtonRenderer extends JButton implements TableCellRenderer {
         public ButtonRenderer() { setOpaque(true); }
         @Override
@@ -487,6 +624,10 @@ public class StudentPanel extends JPanel {
         protected JButton button;
         private String label;
         private boolean isPushed;
+        
+        // Add these imports explicitly as they're in subpackages
+        private java.awt.event.MouseEvent mouseEvent;
+        private java.awt.event.ActionEvent actionEvent;
         private JTable table;
         private List<ExamRecord> records;
         private StudentPanel studentPanel; // Reference to the parent panel

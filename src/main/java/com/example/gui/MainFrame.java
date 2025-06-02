@@ -135,7 +135,29 @@ public class MainFrame extends JFrame {
         gbc.gridx = 0; gbc.gridy = 4; gbc.gridwidth = 2;
         gbc.insets = new Insets(20, 15, 15, 15);
         loginPanel.add(loginButton, gbc);
-    
+
+        // 添加“还没有账号？立即注册”文本和注册按钮
+        JLabel registerPromptLabel = new JLabel("还没有账号？");
+        registerPromptLabel.setFont(new Font("微软雅黑", Font.PLAIN, 14));
+        gbc.gridx = 0; gbc.gridy = 5; gbc.gridwidth = 1;
+        gbc.anchor = GridBagConstraints.EAST;
+        gbc.insets = new Insets(0, 15, 15, 0);
+        loginPanel.add(registerPromptLabel, gbc);
+
+        JButton registerButton = new JButton("立即注册");
+        registerButton.setFont(new Font("微软雅黑", Font.BOLD, 14));
+        registerButton.setForeground(new Color(0, 102, 204));
+        registerButton.setBorderPainted(false);
+        registerButton.setContentAreaFilled(false);
+        registerButton.setFocusPainted(false);
+        registerButton.setCursor(new Cursor(Cursor.HAND_CURSOR));
+        registerButton.addActionListener(e -> showRegisterDialog()); // 添加注册对话框的动作监听器
+
+        gbc.gridx = 1; gbc.gridy = 5; gbc.gridwidth = 1;
+        gbc.anchor = GridBagConstraints.WEST;
+        gbc.insets = new Insets(0, 0, 15, 15);
+        loginPanel.add(registerButton, gbc);
+
         return loginPanel; // 返回创建的JPanel
     }
 
@@ -197,6 +219,83 @@ public class MainFrame extends JFrame {
 
     public JPanel getMainPanel() {
         return mainPanel;
+    }
+
+    private void showRegisterDialog() {
+        JDialog registerDialog = new JDialog(this, "学生注册", true);
+        registerDialog.setSize(400, 300);
+        registerDialog.setLocationRelativeTo(this);
+        registerDialog.setLayout(new GridBagLayout());
+
+        GridBagConstraints gbc = new GridBagConstraints();
+        gbc.insets = new Insets(10, 10, 10, 10);
+        gbc.fill = GridBagConstraints.HORIZONTAL;
+
+        // 学号
+        gbc.gridx = 0; gbc.gridy = 0;
+        registerDialog.add(new JLabel("学号:"), gbc);
+        JTextField regStudentIdField = new JTextField(15);
+        gbc.gridx = 1; gbc.gridy = 0;
+        registerDialog.add(regStudentIdField, gbc);
+
+        // 姓名
+        gbc.gridx = 0; gbc.gridy = 1;
+        registerDialog.add(new JLabel("姓名:"), gbc);
+        JTextField regNameField = new JTextField(15);
+        gbc.gridx = 1; gbc.gridy = 1;
+        registerDialog.add(regNameField, gbc);
+
+        // 密码
+        gbc.gridx = 0; gbc.gridy = 2;
+        registerDialog.add(new JLabel("密码:"), gbc);
+        JPasswordField regPasswordField = new JPasswordField(15);
+        gbc.gridx = 1; gbc.gridy = 2;
+        registerDialog.add(regPasswordField, gbc);
+
+        // 确认密码
+        gbc.gridx = 0; gbc.gridy = 3;
+        registerDialog.add(new JLabel("确认密码:"), gbc);
+        JPasswordField regConfirmPasswordField = new JPasswordField(15);
+        gbc.gridx = 1; gbc.gridy = 3;
+        registerDialog.add(regConfirmPasswordField, gbc);
+
+        JButton registerButton = new JButton("注册");
+        registerButton.addActionListener(e -> {
+            String studentId = regStudentIdField.getText();
+            String name = regNameField.getText();
+            String password = new String(regPasswordField.getPassword());
+            String confirmPassword = new String(regConfirmPasswordField.getPassword());
+
+            if (studentId.isEmpty() || name.isEmpty() || password.isEmpty() || confirmPassword.isEmpty()) {
+                JOptionPane.showMessageDialog(registerDialog, "所有字段都不能为空！", "注册失败", JOptionPane.ERROR_MESSAGE);
+                return;
+            }
+
+            if (!password.equals(confirmPassword)) {
+                JOptionPane.showMessageDialog(registerDialog, "两次输入的密码不一致！", "注册失败", JOptionPane.ERROR_MESSAGE);
+                return;
+            }
+
+            // 检查学号是否已存在
+            if (studentDAO.findByStudentId(studentId) != null) {
+                JOptionPane.showMessageDialog(registerDialog, "学号已存在，请更换！", "注册失败", JOptionPane.ERROR_MESSAGE);
+                return;
+            }
+
+            Student newStudent = new Student(studentId, name, password);
+            if (studentDAO.addStudent(newStudent)) {
+                JOptionPane.showMessageDialog(registerDialog, "注册成功！请使用学号和密码登录。", "注册成功", JOptionPane.INFORMATION_MESSAGE);
+                registerDialog.dispose(); // 关闭注册对话框
+            } else {
+                JOptionPane.showMessageDialog(registerDialog, "注册失败，请稍后再试。", "注册失败", JOptionPane.ERROR_MESSAGE);
+            }
+        });
+
+        gbc.gridx = 0; gbc.gridy = 4; gbc.gridwidth = 2;
+        gbc.anchor = GridBagConstraints.CENTER;
+        registerDialog.add(registerButton, gbc);
+
+        registerDialog.setVisible(true);
     }
 
     // 辅助方法，用于创建统一风格的菜单按钮

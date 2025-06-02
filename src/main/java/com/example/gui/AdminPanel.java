@@ -100,26 +100,38 @@ public class AdminPanel extends JPanel {
 
     private JPanel createAdminMenuPanel() {
         JPanel adminMenuPanel = new JPanel(new BorderLayout());
-        adminMenuPanel.setBackground(new Color(248, 248, 255));
+        adminMenuPanel.setBackground(new Color(230, 240, 250));
     
-        JPanel topPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
-        topPanel.setBackground(new Color(248, 248, 255));
+        JPanel topPanel = new JPanel(new BorderLayout()); // Change to BorderLayout
+        topPanel.setBackground(new Color(230, 240, 250));
+        
+        // Panel to hold welcome label for centering
+        JPanel welcomePanel = new JPanel(new FlowLayout(FlowLayout.CENTER));
+        welcomePanel.setOpaque(false);
         adminWelcomeLabel = new JLabel("欢迎管理员: " + currentAdmin.getUsername() + "  ");
-        adminWelcomeLabel.setFont(new Font("微软雅黑", Font.BOLD, 16));
-        topPanel.add(adminWelcomeLabel);
+        adminWelcomeLabel.setFont(new Font("微软雅黑", Font.BOLD, 22));
+        welcomePanel.add(adminWelcomeLabel);
+        
+        topPanel.add(welcomePanel, BorderLayout.CENTER); // Add welcome panel to center
     
         JButton logoutButton = new JButton("退出登录");
-        logoutButton.setFont(new Font("微软雅黑", Font.PLAIN, 14));
+        logoutButton.setFont(new Font("微软雅黑", Font.PLAIN, 18));
         logoutButton.addActionListener(e -> mainFrame.logout());
-        topPanel.add(logoutButton);
+        
+        JPanel logoutPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT)); // Panel to hold logout button
+        logoutPanel.setOpaque(false);
+        logoutPanel.add(logoutButton);
+        
+        topPanel.add(logoutPanel, BorderLayout.EAST); // Add logout button panel to east
+        
         adminMenuPanel.add(topPanel, BorderLayout.NORTH);
     
         JPanel centerPanel = new JPanel(new GridBagLayout());
-        centerPanel.setBackground(new Color(248, 248, 255));
+        centerPanel.setBackground(new Color(230, 240, 250));
         GridBagConstraints gbc = new GridBagConstraints();
-        gbc.insets = new Insets(15, 15, 15, 15);
-        gbc.ipadx = 20; gbc.ipady = 8;
-        gbc.fill = GridBagConstraints.HORIZONTAL;
+        gbc.insets = new Insets(20, 20, 20, 20); // Increased insets for more space
+        gbc.ipadx = 40; gbc.ipady = 20; // Increased padding for larger buttons
+        gbc.fill = GridBagConstraints.BOTH; // Fill both horizontally and vertically
             
         JButton manageStudentsButton = mainFrame.createMenuButton("管理学生", new Color(30, 144, 255));
         manageStudentsButton.addActionListener(e -> adminCardLayout.show(adminContentPanel, VIEW_MANAGE_STUDENTS));
@@ -144,7 +156,7 @@ public class AdminPanel extends JPanel {
     private JPanel createManageStudentsPanel() {
         JPanel manageStudentsPanel = new JPanel(new BorderLayout(10,10));
         manageStudentsPanel.setBorder(BorderFactory.createEmptyBorder(15,15,15,15));
-        manageStudentsPanel.setBackground(new Color(240, 245, 250));
+        manageStudentsPanel.setBackground(new Color(248, 248, 255)); // Changed background color
 
         // Title and Back Button Panel
         JPanel topNavPanel = new JPanel(new BorderLayout());
@@ -563,94 +575,157 @@ public class AdminPanel extends JPanel {
 
     private void showAddQuestionDialog() {
         JDialog addDialog = new JDialog(mainFrame, "添加新题目", true); 
-        addDialog.setSize(650, 550); 
+        addDialog.setSize(650, 550);
+        addDialog.setMinimumSize(new Dimension(650, 550));
         addDialog.setLocationRelativeTo(mainFrame);
         addDialog.setLayout(new BorderLayout(10,10));
-        addDialog.getRootPane().setBorder(BorderFactory.createEmptyBorder(10,10,10,10));
+        addDialog.getRootPane().setBorder(BorderFactory.createEmptyBorder(20,20,20,20));
 
         JPanel dialogFormPanel = new JPanel(new GridBagLayout());
+        dialogFormPanel.setBorder(BorderFactory.createTitledBorder("添加新题目"));
+        dialogFormPanel.setOpaque(false);
         GridBagConstraints gbc = new GridBagConstraints();
-        gbc.insets = new Insets(5,5,5,5);
+        gbc.insets = new Insets(5, 5, 5, 5);
         gbc.fill = GridBagConstraints.HORIZONTAL;
         gbc.anchor = GridBagConstraints.WEST;
 
         int gridY = 0;
         // Type
-        dialogFormPanel.add(new JLabel("题目类型:"), gbcData(gbc, 0, gridY, 1, 1));
+        gbc.gridx = 0; gbc.gridy = gridY; gbc.gridwidth = 1;
+        dialogFormPanel.add(new JLabel("题目类型:"), gbc);
         JComboBox<QuestionType> dialogTypeComboBox = new JComboBox<>(QuestionType.values());
-        dialogFormPanel.add(dialogTypeComboBox, gbcData(gbc, 1, gridY++, 1, 1)); 
+        gbc.gridx = 1; gbc.gridwidth = 2;
+        dialogFormPanel.add(dialogTypeComboBox, gbc);
+        gridY++;
+
         // Subject
-        dialogFormPanel.add(new JLabel("科目:"), gbcData(gbc, 0, gridY, 1, 1));
+        gbc.gridx = 0; gbc.gridy = gridY; gbc.gridwidth = 1;
+        dialogFormPanel.add(new JLabel("科目:"), gbc);
         JComboBox<String> dialogSubjectComboBox = new JComboBox<>();
         List<Subject> subjects = subjectDAO.getAllSubjects();
-        for (Subject subject : subjects) dialogSubjectComboBox.addItem(subject.getName());
-        if (dialogSubjectComboBox.getItemCount() > 0) dialogSubjectComboBox.setSelectedIndex(0);
-        dialogFormPanel.add(dialogSubjectComboBox, gbcData(gbc, 1, gridY++, 1, 1)); 
-        // Question Text (larger text area)
-        dialogFormPanel.add(new JLabel("题目内容:"), gbcData(gbc, 0, gridY, 1, 1));
-        JTextArea dialogQuestionTextArea = new JTextArea(3, 30); 
-        dialogQuestionTextArea.setLineWrap(true);
-        dialogQuestionTextArea.setWrapStyleWord(true);
-        JScrollPane questionScrollPaneDialog = new JScrollPane(dialogQuestionTextArea);
-        dialogFormPanel.add(questionScrollPaneDialog, gbcData(gbc, 1, gridY++, 1, 1)); 
-        
-        // Options Panel (will be shown/hidden)
-        JPanel dialogOptionsPanel = new JPanel(new GridBagLayout());
-        GridBagConstraints optGbc = new GridBagConstraints();
-        optGbc.insets = new Insets(3,3,3,3); optGbc.fill = GridBagConstraints.HORIZONTAL; optGbc.anchor = GridBagConstraints.WEST;
-        int optGridY = 0;
-        JTextField dialogOptionA = new JTextField(25);
-        JTextField dialogOptionB = new JTextField(25);
-        JTextField dialogOptionC = new JTextField(25);
-        JTextField dialogOptionD = new JTextField(25);
-        dialogOptionsPanel.add(new JLabel("A:"), gbcData(optGbc, 0, optGridY, 1, 1));
-        dialogOptionsPanel.add(dialogOptionA, gbcData(optGbc, 1, optGridY++, 1, 1));
-        dialogOptionsPanel.add(new JLabel("B:"), gbcData(optGbc, 0, optGridY, 1, 1));
-        dialogOptionsPanel.add(dialogOptionB, gbcData(optGbc, 1, optGridY++, 1, 1));
-        dialogOptionsPanel.add(new JLabel("C:"), gbcData(optGbc, 0, optGridY, 1, 1));
-        dialogOptionsPanel.add(dialogOptionC, gbcData(optGbc, 1, optGridY++, 1, 1));
-        dialogOptionsPanel.add(new JLabel("D:"), gbcData(optGbc, 0, optGridY, 1, 1));
-        dialogOptionsPanel.add(dialogOptionD, gbcData(optGbc, 1, optGridY++, 1, 1));
-        
-        dialogFormPanel.add(new JLabel("选项:"), gbcData(gbc, 0, gridY, 1, 1)); // Label for options panel
-        dialogFormPanel.add(dialogOptionsPanel, gbcData(gbc, 1, gridY++, 1, 1));
+        for (Subject subject : subjects) {
+            dialogSubjectComboBox.addItem(subject.getName());
+        }
+        if (dialogSubjectComboBox.getItemCount() > 0) {
+            dialogSubjectComboBox.setSelectedIndex(0);
+        }
+        gbc.gridx = 1; gbc.gridwidth = 2;
+        dialogFormPanel.add(dialogSubjectComboBox, gbc);
+        gridY++;
+
+        // Question Text
+        gbc.gridx = 0; gbc.gridy = gridY; gbc.gridwidth = 1;
+        dialogFormPanel.add(new JLabel("题目内容:"), gbc);
+        JTextField dialogQuestionTextField = new JTextField(30);
+        gbc.gridx = 1; gbc.gridwidth = 2;
+        dialogFormPanel.add(dialogQuestionTextField, gbc);
+        gridY++;
+
+        // Options
+        JTextField dialogOptionA = new JTextField(20);
+        JTextField dialogOptionB = new JTextField(20);
+        JTextField dialogOptionC = new JTextField(20);
+        JTextField dialogOptionD = new JTextField(20);
+        JLabel dialogOptionALabel = new JLabel("选项A:");
+        JLabel dialogOptionBLabel = new JLabel("选项B:");
+        JLabel dialogOptionCLabel = new JLabel("选项C:");
+        JLabel dialogOptionDLabel = new JLabel("选项D:");
+
+        gbc.gridx = 0; gbc.gridy = gridY; gbc.gridwidth = 1;
+        dialogFormPanel.add(dialogOptionALabel, gbc);
+        gbc.gridx = 1; gbc.gridwidth = 2;
+        dialogFormPanel.add(dialogOptionA, gbc);
+        gridY++;
+
+        gbc.gridx = 0; gbc.gridy = gridY; gbc.gridwidth = 1;
+        dialogFormPanel.add(dialogOptionBLabel, gbc);
+        gbc.gridx = 1; gbc.gridwidth = 2;
+        dialogFormPanel.add(dialogOptionB, gbc);
+        gridY++;
+
+        gbc.gridx = 0; gbc.gridy = gridY; gbc.gridwidth = 1;
+        dialogFormPanel.add(dialogOptionCLabel, gbc);
+        gbc.gridx = 1; gbc.gridwidth = 2;
+        dialogFormPanel.add(dialogOptionC, gbc);
+        gridY++;
+
+        gbc.gridx = 0; gbc.gridy = gridY; gbc.gridwidth = 1;
+        dialogFormPanel.add(dialogOptionDLabel, gbc);
+        gbc.gridx = 1; gbc.gridwidth = 2;
+        dialogFormPanel.add(dialogOptionD, gbc);
+        gridY++;
 
         // Correct Answer (Choice)
-        dialogFormPanel.add(new JLabel("选择题答案:"), gbcData(gbc, 0, gridY, 1, 1));
-        JTextField dialogCorrectAnswerChoice = new JTextField(15);
-        dialogFormPanel.add(dialogCorrectAnswerChoice, gbcData(gbc, 1, gridY++, 1, 1));
+        gbc.gridx = 0; gbc.gridy = gridY; gbc.gridwidth = 1;
+        JLabel dialogCorrectAnswerLabel = new JLabel("选择题答案:");
+        dialogFormPanel.add(dialogCorrectAnswerLabel, gbc);
+        JTextField dialogCorrectAnswerChoice = new JTextField(10);
+        gbc.gridx = 1; gbc.gridwidth = 2;
+        dialogFormPanel.add(dialogCorrectAnswerChoice, gbc);
+        gridY++;
+
         // Fill Blank Answer
-        dialogFormPanel.add(new JLabel("填空题答案:"), gbcData(gbc, 0, gridY, 1, 1));
-        JTextField dialogFillBlankAnswer = new JTextField(25);
-        dialogFormPanel.add(dialogFillBlankAnswer, gbcData(gbc, 1, gridY++, 1, 1));
+        gbc.gridx = 0; gbc.gridy = gridY; gbc.gridwidth = 1;
+        JLabel dialogFillBlankAnswerLabel = new JLabel("填空题答案:");
+        dialogFormPanel.add(dialogFillBlankAnswerLabel, gbc);
+        JTextField dialogFillBlankAnswer = new JTextField(20);
+        gbc.gridx = 1; gbc.gridwidth = 2;
+        dialogFormPanel.add(dialogFillBlankAnswer, gbc);
+        gridY++;
 
         // --- Dynamic visibility logic for dialog ---
         Runnable updateDialogFieldsVisibility = () -> {
             QuestionType selected = (QuestionType) dialogTypeComboBox.getSelectedItem();
             boolean isChoice = selected == QuestionType.SINGLE_CHOICE || selected == QuestionType.MULTIPLE_CHOICE;
             boolean isFill = selected == QuestionType.FILL_BLANK;
-            dialogOptionsPanel.setVisible(isChoice);
+            
+            // 控制选项字段和标签的可见性
+            dialogOptionA.setVisible(isChoice);
+            dialogOptionB.setVisible(isChoice);
+            dialogOptionC.setVisible(isChoice);
+            dialogOptionD.setVisible(isChoice);
+            dialogOptionALabel.setVisible(isChoice);
+            dialogOptionBLabel.setVisible(isChoice);
+            dialogOptionCLabel.setVisible(isChoice);
+            dialogOptionDLabel.setVisible(isChoice);
+            
+            // 控制答案字段和标签的可见性
             dialogCorrectAnswerChoice.setVisible(isChoice);
+            dialogCorrectAnswerLabel.setVisible(isChoice);
             dialogFillBlankAnswer.setVisible(isFill);
+            dialogFillBlankAnswerLabel.setVisible(isFill);
+            
             if (isChoice) {
-                dialogCorrectAnswerChoice.setToolTipText(selected == QuestionType.SINGLE_CHOICE ? "A-D" : "A,B,C,D (逗号分隔)");
+                dialogCorrectAnswerChoice.setToolTipText(selected == QuestionType.SINGLE_CHOICE ? 
+                    "单个答案字母 (A-D)" : "多个答案字母,逗号分隔 (A,B,C,D)");
             } else {
-                 dialogCorrectAnswerChoice.setToolTipText(null);
+                dialogCorrectAnswerChoice.setToolTipText(null);
             }
-            addDialog.pack(); // Adjust dialog size
         };
         dialogTypeComboBox.addActionListener(e -> updateDialogFieldsVisibility.run());
         updateDialogFieldsVisibility.run(); // Initial call
         // --- End dynamic visibility ---
 
-        JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
+        JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.CENTER, 20, 10));
+        buttonPanel.setBorder(BorderFactory.createEmptyBorder(10, 0, 10, 0));
+        
         JButton confirmAddButton = new JButton("确认添加");
+        confirmAddButton.setPreferredSize(new Dimension(100, 30));
+        confirmAddButton.setBackground(new Color(70, 130, 180));
+        confirmAddButton.setForeground(Color.WHITE);
+        confirmAddButton.setFocusPainted(false);
+        
         JButton cancelButton = new JButton("取消");
+        cancelButton.setPreferredSize(new Dimension(100, 30));
+        cancelButton.setBackground(new Color(190, 190, 190));
+        cancelButton.setForeground(Color.BLACK);
+        cancelButton.setFocusPainted(false);
+        
         buttonPanel.add(confirmAddButton);
         buttonPanel.add(cancelButton);
 
         confirmAddButton.addActionListener(e -> {
-            String questionText = dialogQuestionTextArea.getText().trim();
+            String questionText = dialogQuestionTextField.getText().trim();
             String subjectName = (String) dialogSubjectComboBox.getSelectedItem();
             QuestionType type = (QuestionType) dialogTypeComboBox.getSelectedItem();
 

@@ -4,6 +4,7 @@ import com.example.database.DatabaseManager;
 import com.example.gui.MainFrame;
 
 import javax.swing.*;
+import com.formdev.flatlaf.FlatLightLaf;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
 
@@ -12,6 +13,14 @@ import java.awt.event.WindowEvent;
  */
 public class ExamSystemMain {
     public static void main(String[] args) {
+        // 设置 Look and Feel
+        try {
+            // 设置 FlatLaf Look and Feel
+            UIManager.setLookAndFeel(new FlatLightLaf());
+        } catch (UnsupportedLookAndFeelException ex) {
+            java.util.logging.Logger.getLogger(ExamSystemMain.class.getName()).log(java.util.logging.Level.SEVERE, null, ex);
+        }
+
         SwingUtilities.invokeLater(() -> {
             MainFrame gui = new MainFrame();
             gui.setVisible(true);
