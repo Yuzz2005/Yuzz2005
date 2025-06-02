@@ -92,32 +92,6 @@ src/
 - `ExamDAO`: 考试记录数据访问对象，负责与考试记录表进行数据交互。
 - `SubjectDAO`: 科目数据访问对象，负责与科目表进行数据交互。
 
-## 数据模型
-
-### Student（学生）
-- `studentId` (int): 学号，主键
-- `name` (String): 姓名
-- `password` (String): 密码（加密存储）
-
-### Question（题目）
-- `questionId` (int): 题目ID，主键
-- `type` (String): 题目类型（如 "single_choice", "multiple_choice", "fill_in_blank"）
-- `content` (String): 题目内容
-- `optionA`, `optionB`, `optionC`, `optionD` (String): 选项内容（多选和单选）
-- `correctAnswer` (String): 正确答案
-- `subjectId` (int): 所属科目ID，外键关联 `Subject` 表
-
-### ExamRecord（考试记录）
-- `recordId` (int): 记录ID，主键
-- `studentId` (int): 学生ID，外键关联 `Student` 表
-- `subjectId` (int): 科目ID，外键关联 `Subject` 表
-- `score` (double): 考试得分
-- `examDate` (Timestamp): 考试时间
-
-### Subject（科目）
-- `subjectId` (int): 科目ID，主键
-- `subjectName` (String): 科目名称
-
 ## 使用说明
 
 ### 学生使用流程
@@ -160,20 +134,6 @@ src/
 
 - [ ] 添加试卷管理功能，支持试卷的创建、编辑和发布。
 - [ ] 支持图片题目，丰富题库内容。
-- [ ] ###### 支持题目和试卷的导入导出功能。
+- [ ] 支持题目和试卷的导入导出功能。
 - [ ] 优化界面设计，提升用户体验。
 - [ ] 添加考试防作弊功能，如屏幕监控、随机题目顺序等。
-
-## 类图
-
-![image-20250601220528095](C:\Users\Aquaman\AppData\Roaming\Typora\typora-user-images\image-20250601220528095.png)
-
-## 顺序图
-
-### 学生登录流程
-
-![image-20250601220735986](C:\Users\Aquaman\AppData\Roaming\Typora\typora-user-images\image-20250601220735986.png)
-
-### 学生考试流程
-
-![image-20250601220759691](C:\Users\Aquaman\AppData\Roaming\Typora\typora-user-images\image-20250601220759691.png)
