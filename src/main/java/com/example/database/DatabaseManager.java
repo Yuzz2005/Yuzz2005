@@ -27,9 +27,9 @@ public class DatabaseManager {
             System.out.println("DatabaseManager: Attempting to get connection..."); // Added logging
             connection = DriverManager.getConnection(DB_URL, DB_USER, DB_PASSWORD);
             System.out.println("DatabaseManager: Connection obtained successfully."); // Added logging
-            createTables();
             System.out.println("DatabaseManager: Tables created."); // Added logging
             insertSampleData();
+            createTables();
             System.out.println("DatabaseManager: Sample data inserted."); // Added logging
         } catch (SQLException e) {
             System.err.println("DatabaseManager: Error during initialization: " + e.getMessage()); // Added logging
@@ -98,11 +98,50 @@ public class DatabaseManager {
             )
             """;
 
+            String createStudentAnswerDetailsTable = """
+                create table student_answer_details
+(
+    id             int auto_increment
+        primary key,
+    exam_record_id int         null,
+    question_id    int         null,
+    student_answer text        null,
+    is_correct     tinyint(1)  null,
+    correct_answer text        null,
+    question_text  text        null,
+    option_a       text        null,
+    option_b       text        null,
+    option_c       text        null,
+    option_d       text        null,
+    question_type  varchar(50) null,
+    constraint student_answer_details_ibfk_1
+        foreign key (exam_record_id) references exam_records (id)
+            on delete cascade,
+    constraint student_answer_details_ibfk_2
+        foreign key (question_id) references questions (id)
+            on delete set null
+)
+                )
+                """;
+
+                String createSubjectsTable = """
+                    create table subjects
+(
+    id   int auto_increment
+        primary key,
+    name varchar(255) not null,
+    constraint name
+        unique (name)
+)
+                    """;
+
         Statement stmt = connection.createStatement();
         stmt.execute(createStudentTable);
         stmt.execute(createQuestionTable);
         stmt.execute(createExamRecordTable);
         stmt.execute(createAdminTable);
+        stmt.execute(createStudentAnswerDetailsTable);
+        stmt.execute(createSubjectsTable);
         stmt.close();
     }
 
