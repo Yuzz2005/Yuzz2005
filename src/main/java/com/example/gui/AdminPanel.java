@@ -1038,7 +1038,7 @@ public class AdminPanel extends JPanel {
         int option = JOptionPane.showConfirmDialog(
                 this,
                 scrollPane,
-                "编辑评语",
+                "编辑评语（狠狠的恶评吧！）",
                 JOptionPane.OK_CANCEL_OPTION,
                 JOptionPane.PLAIN_MESSAGE);
 
