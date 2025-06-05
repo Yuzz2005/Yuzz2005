@@ -936,7 +936,7 @@ public class AdminPanel extends JPanel {
         topNavPanel.add(titleLabel, BorderLayout.CENTER);
         manageExamsPanel.add(topNavPanel, BorderLayout.NORTH);
 
-        String[] columnNames = {"ID", "学生ID", "科目", "分数", "考试日期"};
+        String[] columnNames = {"ID", "学生ID", "科目", "分数", "考试日期", "评语"};
         examRecordsTable = new JTable();
         examRecordsScrollPane = new JScrollPane(examRecordsTable);
         manageExamsPanel.add(examRecordsScrollPane, BorderLayout.CENTER);
@@ -944,12 +944,16 @@ public class AdminPanel extends JPanel {
         JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.CENTER, 10, 10));
         deleteExamRecordButton = new JButton("删除考试记录");
         deleteExamRecordButton.setFont(new Font("微软雅黑", Font.PLAIN, 14));
+        JButton addCommentButton = new JButton("添加/编辑评语"); // New button
+        addCommentButton.setFont(new Font("微软雅黑", Font.PLAIN, 14));
 
         buttonPanel.add(deleteExamRecordButton);
+        buttonPanel.add(addCommentButton); // Add new button
 
         manageExamsPanel.add(buttonPanel, BorderLayout.SOUTH);
 
         deleteExamRecordButton.addActionListener(e -> deleteExamRecord());
+        addCommentButton.addActionListener(e -> showCommentDialog()); // Action listener for new button
 
         return manageExamsPanel;
     }
@@ -960,9 +964,9 @@ public class AdminPanel extends JPanel {
     }
 
     private void loadExamRecordsTable() {
-        List<ExamRecord> records = examDAO.getAllExamRecords();
-        String[] columnNames = {"ID", "学生ID", "科目", "分数", "考试日期"};
-        Object[][] data = new Object[records.size()][5];
+        List<ExamRecord> records = mainFrame.getExamService().getAllExamRecords(); // Changed to get all records
+        String[] columnNames = {"ID", "学生ID", "科目", "分数", "考试日期", "评语"};
+        Object[][] data = new Object[records.size()][columnNames.length];
 
         for (int i = 0; i < records.size(); i++) {
             ExamRecord r = records.get(i);
@@ -971,15 +975,22 @@ public class AdminPanel extends JPanel {
             data[i][2] = r.getSubject();
             data[i][3] = r.getScore();
             data[i][4] = r.getExamDate();
+            data[i][5] = r.getComment(); // Populate comment column
         }
 
-        examRecordsTable.setModel(new javax.swing.table.DefaultTableModel(data, columnNames));
+        examRecordsTable.setModel(new javax.swing.table.DefaultTableModel(data, columnNames) {
+            @Override
+            public boolean isCellEditable(int row, int column) {
+                return false; // Make table non-editable
+            }
+        });
         // Set column widths for better display
         examRecordsTable.getColumnModel().getColumn(0).setPreferredWidth(40); // ID
         examRecordsTable.getColumnModel().getColumn(1).setPreferredWidth(80); // Student ID
         examRecordsTable.getColumnModel().getColumn(2).setPreferredWidth(100); // Subject
         examRecordsTable.getColumnModel().getColumn(3).setPreferredWidth(60); // Score
         examRecordsTable.getColumnModel().getColumn(4).setPreferredWidth(120); // Exam Date
+        examRecordsTable.getColumnModel().getColumn(5).setPreferredWidth(200); // Comment
     }
 
     private void deleteExamRecord() {
@@ -993,7 +1004,7 @@ public class AdminPanel extends JPanel {
 
         int confirm = JOptionPane.showConfirmDialog(this, "确定要删除选中的考试记录吗？", "确认删除", JOptionPane.YES_NO_OPTION);
         if (confirm == JOptionPane.YES_OPTION) {
-            boolean success = examDAO.deleteExamRecord(recordId);
+            boolean success = mainFrame.getExamService().deleteExamRecord(recordId); // Changed to use ExamService
             if (success) {
                 JOptionPane.showMessageDialog(this, "考试记录删除成功！", "成功", JOptionPane.INFORMATION_MESSAGE);
                 loadExamRecordsTable();
@@ -1002,6 +1013,48 @@ public class AdminPanel extends JPanel {
             }
         }
     }
+
+    /**
+     * 显示评语编辑对话框
+     */
+    private void showCommentDialog() {
+        int selectedRow = examRecordsTable.getSelectedRow();
+        if (selectedRow == -1) {
+            JOptionPane.showMessageDialog(this, "请选择要添加或编辑评语的考试记录。", "提示", JOptionPane.INFORMATION_MESSAGE);
+            return;
+        }
+
+        int examRecordId = (int) examRecordsTable.getValueAt(selectedRow, 0);
+        String currentComment = (String) examRecordsTable.getValueAt(selectedRow, 5);
+        if (currentComment == null) {
+            currentComment = "";
+        }
+
+        JTextArea commentArea = new JTextArea(currentComment, 5, 30);
+        commentArea.setLineWrap(true);
+        commentArea.setWrapStyleWord(true);
+        JScrollPane scrollPane = new JScrollPane(commentArea);
+
+        int option = JOptionPane.showConfirmDialog(
+                this,
+                scrollPane,
+                "编辑评语",
+                JOptionPane.OK_CANCEL_OPTION,
+                JOptionPane.PLAIN_MESSAGE);
+
+        if (option == JOptionPane.OK_OPTION) {
+            String newComment = commentArea.getText().trim();
+            boolean success = mainFrame.getExamService().updateExamRecordComment(examRecordId, newComment);
+
+            if (success) {
+                JOptionPane.showMessageDialog(this, "评语保存成功！", "成功", JOptionPane.INFORMATION_MESSAGE);
+                loadExamRecordsTable(); // Refresh the table to show the new comment
+            } else {
+                JOptionPane.showMessageDialog(this, "评语保存失败，请检查数据库连接。", "错误", JOptionPane.ERROR_MESSAGE);
+            }
+        }
+    }
+
     // 管理科目功能
      private JPanel createManageSubjectsPanel() {
          JPanel manageSubjectsPanel = new JPanel(new BorderLayout(10, 10));

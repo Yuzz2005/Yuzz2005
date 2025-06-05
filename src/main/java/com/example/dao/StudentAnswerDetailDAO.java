@@ -18,10 +18,22 @@ import java.util.List;
  */
 public class StudentAnswerDetailDAO {
 
-    private DatabaseManager dbManager;
+    private Connection externalConnection; // For transactional use
 
     public StudentAnswerDetailDAO() {
-        this.dbManager = DatabaseManager.getInstance();
+        // Default constructor for non-transactional use
+    }
+
+    public StudentAnswerDetailDAO(Connection connection) {
+        this.externalConnection = connection;
+    }
+
+    private Connection getConnection() throws SQLException {
+        if (this.externalConnection != null && !this.externalConnection.isClosed()) {
+            return this.externalConnection;
+        } else {
+            return DatabaseManager.getInstance().getConnection();
+        }
     }
 
     /**
@@ -31,8 +43,8 @@ public class StudentAnswerDetailDAO {
      */
     public boolean saveStudentAnswerDetail(StudentAnswerDetail detail) {
         String sql = "INSERT INTO student_answer_details (exam_record_id, question_id, student_answer, is_correct, correct_answer, question_text, option_a, option_b, option_c, option_d, question_type) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
-        try (Connection conn = dbManager.getConnection();
-             PreparedStatement pstmt = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
+        try (Connection connection = getConnection(); // Use internal getConnection logic
+             PreparedStatement pstmt = connection.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
 
             pstmt.setInt(1, detail.getExamRecordId());
             pstmt.setInt(2, detail.getQuestionId());
@@ -87,8 +99,8 @@ public class StudentAnswerDetailDAO {
     public List<StudentAnswerDetail> getStudentAnswerDetailsByExamRecordId(int examRecordId) {
         List<StudentAnswerDetail> details = new ArrayList<>();
         String sql = "SELECT * FROM student_answer_details WHERE exam_record_id = ?";
-        try (Connection conn = dbManager.getConnection();
-             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+        try (Connection connection = getConnection(); // Use internal getConnection logic
+             PreparedStatement pstmt = connection.prepareStatement(sql)) {
 
             pstmt.setInt(1, examRecordId);
             ResultSet rs = pstmt.executeQuery();

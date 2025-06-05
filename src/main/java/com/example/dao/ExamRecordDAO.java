@@ -21,13 +21,14 @@ public class ExamRecordDAO {
      * 保存考试记录
      */
     public boolean saveExamRecord(ExamRecord record) {
-        String sql = "INSERT INTO exam_records (student_id, subject, score, total_questions) VALUES (?, ?, ?, ?)";
+        String sql = "INSERT INTO exam_records (student_id, subject, score, total_questions, comment) VALUES (?, ?, ?, ?, ?)";
         
         try (PreparedStatement pstmt = dbManager.getConnection().prepareStatement(sql)) {
             pstmt.setString(1, record.getStudentId());
             pstmt.setString(2, record.getSubject());
             pstmt.setInt(3, record.getScore());
             pstmt.setInt(4, record.getTotalQuestions());
+            pstmt.setString(5, record.getComment());
             
             int rowsAffected = pstmt.executeUpdate();
             return rowsAffected > 0;
@@ -42,7 +43,7 @@ public class ExamRecordDAO {
      */
     public List<ExamRecord> getExamRecordsByStudentId(String studentId) {
         List<ExamRecord> records = new ArrayList<>();
-        String sql = "SELECT * FROM exam_records WHERE student_id = ? ORDER BY exam_date DESC";
+        String sql = "SELECT id, student_id, subject, score, total_questions, exam_date, comment FROM exam_records WHERE student_id = ? ORDER BY exam_date DESC";
         
         try (PreparedStatement pstmt = dbManager.getConnection().prepareStatement(sql)) {
             pstmt.setString(1, studentId);
@@ -55,7 +56,8 @@ public class ExamRecordDAO {
                     rs.getString("subject"),
                     rs.getInt("score"),
                     rs.getInt("total_questions"),
-                    rs.getTimestamp("exam_date")
+                    rs.getTimestamp("exam_date"),
+                    rs.getString("comment")
                 );
                 records.add(record);
             }
@@ -71,7 +73,7 @@ public class ExamRecordDAO {
      */
     public List<ExamRecord> getExamRecordsByStudentAndSubject(String studentId, String subject) {
         List<ExamRecord> records = new ArrayList<>();
-        String sql = "SELECT * FROM exam_records WHERE student_id = ? AND subject = ? ORDER BY exam_date DESC";
+        String sql = "SELECT id, student_id, subject, score, total_questions, exam_date, comment FROM exam_records WHERE student_id = ? AND subject = ? ORDER BY exam_date DESC";
         
         try (PreparedStatement pstmt = dbManager.getConnection().prepareStatement(sql)) {
             pstmt.setString(1, studentId);
@@ -85,7 +87,8 @@ public class ExamRecordDAO {
                     rs.getString("subject"),
                     rs.getInt("score"),
                     rs.getInt("total_questions"),
-                    rs.getTimestamp("exam_date")
+                    rs.getTimestamp("exam_date"),
+                    rs.getString("comment")
                 );
                 records.add(record);
             }
@@ -100,7 +103,7 @@ public class ExamRecordDAO {
      * 获取学生在特定科目的最高分
      */
     public ExamRecord getBestScoreByStudentAndSubject(String studentId, String subject) {
-        String sql = "SELECT * FROM exam_records WHERE student_id = ? AND subject = ? ORDER BY score DESC, exam_date DESC LIMIT 1";
+        String sql = "SELECT id, student_id, subject, score, total_questions, exam_date, comment FROM exam_records WHERE student_id = ? AND subject = ? ORDER BY score DESC, exam_date DESC LIMIT 1";
         
         try (PreparedStatement pstmt = dbManager.getConnection().prepareStatement(sql)) {
             pstmt.setString(1, studentId);
@@ -114,7 +117,8 @@ public class ExamRecordDAO {
                     rs.getString("subject"),
                     rs.getInt("score"),
                     rs.getInt("total_questions"),
-                    rs.getTimestamp("exam_date")
+                    rs.getTimestamp("exam_date"),
+                    rs.getString("comment")
                 );
             }
         } catch (SQLException e) {
@@ -129,7 +133,7 @@ public class ExamRecordDAO {
      */
     public List<ExamRecord> getAllExamRecords() {
         List<ExamRecord> records = new ArrayList<>();
-        String sql = "SELECT * FROM exam_records ORDER BY exam_date DESC";
+        String sql = "SELECT id, student_id, subject, score, total_questions, exam_date, comment FROM exam_records ORDER BY exam_date DESC";
         
         try (Statement stmt = dbManager.getConnection().createStatement();
              ResultSet rs = stmt.executeQuery(sql)) {
@@ -141,7 +145,8 @@ public class ExamRecordDAO {
                     rs.getString("subject"),
                     rs.getInt("score"),
                     rs.getInt("total_questions"),
-                    rs.getTimestamp("exam_date")
+                    rs.getTimestamp("exam_date"),
+                    rs.getString("comment")
                 );
                 records.add(record);
             }
@@ -157,7 +162,7 @@ public class ExamRecordDAO {
      */
     public List<ExamRecord> getExamRecordsBySubject(String subject) {
         List<ExamRecord> records = new ArrayList<>();
-        String sql = "SELECT * FROM exam_records WHERE subject = ? ORDER BY exam_date DESC";
+        String sql = "SELECT id, student_id, subject, score, total_questions, exam_date, comment FROM exam_records WHERE subject = ? ORDER BY exam_date DESC";
         
         try (PreparedStatement pstmt = dbManager.getConnection().prepareStatement(sql)) {
             pstmt.setString(1, subject);
@@ -170,7 +175,8 @@ public class ExamRecordDAO {
                     rs.getString("subject"),
                     rs.getInt("score"),
                     rs.getInt("total_questions"),
-                    rs.getTimestamp("exam_date")
+                    rs.getTimestamp("exam_date"),
+                    rs.getString("comment")
                 );
                 records.add(record);
             }
@@ -236,5 +242,23 @@ public class ExamRecordDAO {
         }
         
         return 0.0;
+    }
+
+    /**
+     * 更新考试记录的评语
+     */
+    public boolean updateExamRecordComment(int examRecordId, String comment) {
+        String sql = "UPDATE exam_records SET comment = ? WHERE id = ?";
+
+        try (PreparedStatement pstmt = dbManager.getConnection().prepareStatement(sql)) {
+            pstmt.setString(1, comment);
+            pstmt.setInt(2, examRecordId);
+
+            int rowsAffected = pstmt.executeUpdate();
+            return rowsAffected > 0;
+        } catch (SQLException e) {
+            e.printStackTrace();
+            return false;
+        }
     }
 }

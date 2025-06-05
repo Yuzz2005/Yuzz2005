@@ -17,32 +17,49 @@ public class DatabaseManager {
     private Connection connection;
 
     private DatabaseManager() {
-        System.out.println("DatabaseManager: Initializing database..."); // Added logging
-        initDatabase();
-        System.out.println("DatabaseManager: Database initialization finished."); // Added logging
-    }
-
-    private void initDatabase() {
-        try {
-            System.out.println("DatabaseManager: Attempting to get connection..."); // Added logging
-            connection = DriverManager.getConnection(DB_URL, DB_USER, DB_PASSWORD);
-            System.out.println("DatabaseManager: Connection obtained successfully."); // Added logging
-            System.out.println("DatabaseManager: Tables created."); // Added logging
-            insertSampleData();
-            createTables();
-            System.out.println("DatabaseManager: Sample data inserted."); // Added logging
-        } catch (SQLException e) {
-            System.err.println("DatabaseManager: Error during initialization: " + e.getMessage()); // Added logging
-            e.printStackTrace();
-        }
+        // Constructor no longer calls initDatabase directly
+        // The database should be initialized once at application startup via initializeDatabase() method
+        // System.out.println("DatabaseManager: Initializing database..."); // Removed logging
+        // initDatabase(); // Removed direct call
+        // System.out.println("DatabaseManager: Database initialization finished."); // Removed logging
     }
 
     public static DatabaseManager getInstance() {
         if (instance == null) {
-            System.out.println("DatabaseManager: Creating new instance."); // Added logging
+            System.out.println("DatabaseManager: Creating new instance.");
             instance = new DatabaseManager();
         }
+        // Ensure the connection is open and valid before returning
+        try {
+            if (instance.connection == null || instance.connection.isClosed()) {
+                System.out.println("DatabaseManager: Connection is null or closed. Re-establishing connection...");
+                instance.connection = DriverManager.getConnection(DB_URL, DB_USER, DB_PASSWORD);
+                System.out.println("DatabaseManager: Connection re-established successfully.");
+            }
+        } catch (SQLException e) {
+            System.err.println("DatabaseManager: Error re-establishing connection: " + e.getMessage());
+            e.printStackTrace();
+        }
         return instance;
+    }
+
+    /**
+     * 在应用程序启动时调用此方法来初始化数据库（创建表，插入示例数据）。
+     * 确保只在第一次运行时执行此操作。
+     */
+    public void initializeDatabase() {
+        try {
+            System.out.println("DatabaseManager: Initializing database (creating tables and inserting sample data if not exists)...");
+            if (connection == null || connection.isClosed()) {
+                connection = DriverManager.getConnection(DB_URL, DB_USER, DB_PASSWORD);
+            }
+            createTables();
+            insertSampleData(); // This method will check for existing data
+            System.out.println("DatabaseManager: Database initialization completed.");
+        } catch (SQLException e) {
+            System.err.println("DatabaseManager: Error during database initialization: " + e.getMessage());
+            e.printStackTrace();
+        }
     }
 
     /**
@@ -99,7 +116,7 @@ public class DatabaseManager {
             """;
 
             String createStudentAnswerDetailsTable = """
-                create table student_answer_details
+                create table IF NOT EXISTS student_answer_details
 (
     id             int auto_increment
         primary key,
@@ -121,11 +138,10 @@ public class DatabaseManager {
         foreign key (question_id) references questions (id)
             on delete set null
 )
-                )
                 """;
 
                 String createSubjectsTable = """
-                    create table subjects
+                    create table IF NOT EXISTS subjects
 (
     id   int auto_increment
         primary key,
@@ -251,7 +267,7 @@ public class DatabaseManager {
             System.out.println("DatabaseManager: getConnection() called. Connection is null: " + (connection == null) + ", isClosed: " + (connection != null && connection.isClosed())); // Added logging
             if (connection == null || connection.isClosed()) {
                 System.out.println("DatabaseManager: Connection is null or closed. Re-initializing..."); // Added logging
-                initDatabase(); // Re-initialize connection if it's null or closed
+                connection = DriverManager.getConnection(DB_URL, DB_USER, DB_PASSWORD);
                 System.out.println("DatabaseManager: Re-initialization finished. New connection is null: " + (connection == null) + ", isClosed: " + (connection != null && connection.isClosed())); // Added logging
             }
         } catch (SQLException e) {

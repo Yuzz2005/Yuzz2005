@@ -21,6 +21,9 @@ public class ExamSystemMain {
             java.util.logging.Logger.getLogger(ExamSystemMain.class.getName()).log(java.util.logging.Level.SEVERE, null, ex);
         }
 
+        // 初始化数据库，确保只在程序启动时执行一次
+        DatabaseManager.getInstance().initializeDatabase();
+
         SwingUtilities.invokeLater(() -> {
             MainFrame gui = new MainFrame();
             gui.setVisible(true);

@@ -12,6 +12,7 @@ public class ExamRecord {
     private int score;
     private int totalQuestions;
     private Timestamp examDate;
+    private String comment;
 
     public ExamRecord() {}
 
@@ -20,6 +21,7 @@ public class ExamRecord {
         this.subject = subject;
         this.score = score;
         this.totalQuestions = totalQuestions;
+        this.comment = "";
     }
 
     public ExamRecord(int id, String studentId, String subject, int score, 
@@ -30,6 +32,18 @@ public class ExamRecord {
         this.score = score;
         this.totalQuestions = totalQuestions;
         this.examDate = examDate;
+        this.comment = "";
+    }
+
+    public ExamRecord(int id, String studentId, String subject, int score, 
+                     int totalQuestions, Timestamp examDate, String comment) {
+        this.id = id;
+        this.studentId = studentId;
+        this.subject = subject;
+        this.score = score;
+        this.totalQuestions = totalQuestions;
+        this.examDate = examDate;
+        this.comment = comment;
     }
 
     // Getters and Setters
@@ -81,6 +95,14 @@ public class ExamRecord {
         this.examDate = examDate;
     }
 
+    public String getComment() {
+        return comment;
+    }
+
+    public void setComment(String comment) {
+        this.comment = comment;
+    }
+
     /**
      * 计算得分百分比
      */
@@ -98,6 +120,7 @@ public class ExamRecord {
                 ", score=" + score +
                 ", totalQuestions=" + totalQuestions +
                 ", examDate=" + examDate +
+                ", comment='" + comment + '\'' +
                 "}";
     }
 }

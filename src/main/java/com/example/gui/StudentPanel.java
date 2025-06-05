@@ -482,6 +482,22 @@ public class StudentPanel extends JPanel {
         detailDialog.setSize(700, 500);
         detailDialog.setLocationRelativeTo(mainFrame);
         detailDialog.setLayout(new BorderLayout());
+
+        // Display Exam Comment at the top of the dialog
+        JTextArea commentDisplayArea = new JTextArea("管理员评语: " + record.getComment());
+        commentDisplayArea.setLineWrap(true);
+        commentDisplayArea.setWrapStyleWord(true);
+        commentDisplayArea.setEditable(false);
+        commentDisplayArea.setOpaque(true);
+        commentDisplayArea.setBackground(new Color(245, 245, 220)); // Light yellow background for comments
+        commentDisplayArea.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
+        commentDisplayArea.setFont(new Font("微软雅黑", Font.ITALIC, 13));
+        
+        // Only add if there is a comment
+        if (record.getComment() != null && !record.getComment().trim().isEmpty()) {
+            detailDialog.add(commentDisplayArea, BorderLayout.NORTH);
+        }
+
         JPanel questionsDisplayPanel = new JPanel();
         questionsDisplayPanel.setLayout(new BoxLayout(questionsDisplayPanel, BoxLayout.Y_AXIS));
         questionsDisplayPanel.setBorder(BorderFactory.createEmptyBorder(10,10,10,10));

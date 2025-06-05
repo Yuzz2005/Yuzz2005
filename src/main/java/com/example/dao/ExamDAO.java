@@ -1,7 +1,7 @@
 package com.example.dao;
 
-import com.example.model.ExamRecord;
 import com.example.database.DatabaseManager;
+import com.example.model.ExamRecord;
 
 import java.sql.*;
 import java.util.ArrayList;
@@ -9,10 +9,22 @@ import java.util.List;
 
 public class ExamDAO {
 
-    private DatabaseManager dbManager;
+    private Connection externalConnection; // For transactional use
 
     public ExamDAO() {
-        this.dbManager = DatabaseManager.getInstance();
+        // Default constructor for non-transactional use
+    }
+
+    public ExamDAO(Connection connection) {
+        this.externalConnection = connection;
+    }
+
+    private Connection getConnection() throws SQLException {
+        if (this.externalConnection != null && !this.externalConnection.isClosed()) {
+            return this.externalConnection;
+        } else {
+            return DatabaseManager.getInstance().getConnection();
+        }
     }
 
     /**
@@ -23,8 +35,8 @@ public class ExamDAO {
      */
     public boolean addExamRecord(ExamRecord record) {
         String sql = "INSERT INTO exam_records (student_id, subject, score, exam_date) VALUES (?, ?, ?, ?)";
-        try (Connection conn = dbManager.getConnection();
-             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+        try (Connection connection = getConnection(); // Use internal getConnection logic
+             PreparedStatement pstmt = connection.prepareStatement(sql)) {
 
             pstmt.setString(1, String.valueOf(record.getStudentId()));
             pstmt.setString(2, record.getSubject());
@@ -46,14 +58,14 @@ public class ExamDAO {
      * @param studentId 学生ID
      * @return 考试记录列表
      */
-    public List<ExamRecord> getExamRecordsByStudentId(int studentId) {
+    public List<ExamRecord> getExamRecordsByStudentId(String studentId) { // Changed parameter type to String
         List<ExamRecord> records = new ArrayList<>();
-        String sql = "SELECT * FROM exam_records WHERE student_id = ? ORDER BY exam_date DESC";
+        String sql = "SELECT id, student_id, subject, score, total_questions, exam_date, comment FROM exam_records WHERE student_id = ? ORDER BY exam_date DESC"; // Select comment
 
-        try (Connection conn = dbManager.getConnection();
-             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+        try (Connection connection = getConnection(); // Use internal getConnection logic
+             PreparedStatement pstmt = connection.prepareStatement(sql)) {
 
-            pstmt.setString(1, String.valueOf(studentId));
+            pstmt.setString(1, studentId); // Set String parameter
             ResultSet rs = pstmt.executeQuery();
 
             while (rs.next()) {
@@ -63,7 +75,8 @@ public class ExamDAO {
                         rs.getString("subject"),
                         rs.getInt("score"),
                         rs.getInt("total_questions"),
-                        rs.getTimestamp("exam_date")
+                        rs.getTimestamp("exam_date"),
+                        rs.getString("comment") // Get comment
                 );
                 records.add(record);
             }
@@ -81,10 +94,10 @@ public class ExamDAO {
      */
     public List<ExamRecord> getAllExamRecords() {
         List<ExamRecord> records = new ArrayList<>();
-        String sql = "SELECT * FROM exam_records ORDER BY exam_date DESC";
+        String sql = "SELECT id, student_id, subject, score, total_questions, exam_date, comment FROM exam_records ORDER BY exam_date DESC"; // Select comment
 
-        try (Connection conn = dbManager.getConnection();
-             Statement stmt = conn.createStatement();
+        try (Connection connection = getConnection(); // Use internal getConnection logic
+             Statement stmt = connection.createStatement();
              ResultSet rs = stmt.executeQuery(sql)) {
 
             while (rs.next()) {
@@ -94,7 +107,8 @@ public class ExamDAO {
                         rs.getString("subject"),
                         rs.getInt("score"),
                         rs.getInt("total_questions"),
-                        rs.getTimestamp("exam_date")
+                        rs.getTimestamp("exam_date"),
+                        rs.getString("comment") // Get comment
                 );
                 records.add(record);
             }
@@ -112,8 +126,8 @@ public class ExamDAO {
      */
     public boolean deleteExamRecord(int recordId) {
         String sql = "DELETE FROM exam_records WHERE id = ?";
-        try (Connection conn = dbManager.getConnection();
-             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+        try (Connection connection = getConnection(); // Use internal getConnection logic
+             PreparedStatement pstmt = connection.prepareStatement(sql)) {
 
             pstmt.setInt(1, recordId);
 
@@ -134,26 +148,25 @@ public class ExamDAO {
      * @return 最佳成绩记录，如果没有则返回null
      */
     public ExamRecord getBestScoreByStudentAndSubject(String studentId, String subject) {
-        List<ExamRecord> records = new ArrayList<>();
-        String sql = "SELECT * FROM exam_records WHERE student_id = ? ORDER BY exam_date DESC";
+        String sql = "SELECT id, student_id, subject, score, total_questions, exam_date, comment FROM exam_records WHERE student_id = ? AND subject = ? ORDER BY score DESC, exam_date DESC LIMIT 1"; // Select comment
 
-        try (Connection conn = dbManager.getConnection();
-             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+        try (Connection connection = getConnection(); // Use internal getConnection logic
+             PreparedStatement pstmt = connection.prepareStatement(sql)) {
 
             pstmt.setString(1, studentId);
+            pstmt.setString(2, subject);
             ResultSet rs = pstmt.executeQuery();
 
             if (rs.next()) {
-                ExamRecord record = new ExamRecord(
+                return new ExamRecord(
                         rs.getInt("id"),
                         rs.getString("student_id"),
                         rs.getString("subject"),
                         rs.getInt("score"),
                         rs.getInt("total_questions"),
-                        rs.getTimestamp("exam_date")
+                        rs.getTimestamp("exam_date"),
+                        rs.getString("comment") // Get comment
                 );
-                // Assuming only one best score record is needed
-                return record;
             }
 
         } catch (SQLException e) {
@@ -170,8 +183,8 @@ public class ExamDAO {
      */
     public double getAverageScoreByStudent(String studentId) {
         String sql = "SELECT AVG(score) AS average_score FROM exam_records WHERE student_id = ?";
-        try (Connection conn = dbManager.getConnection();
-             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+        try (Connection connection = getConnection(); // Use internal getConnection logic
+             PreparedStatement pstmt = connection.prepareStatement(sql)) {
 
             pstmt.setString(1, studentId);
             ResultSet rs = pstmt.executeQuery();
@@ -192,16 +205,17 @@ public class ExamDAO {
      * @return 是否保存成功
      */
     public boolean saveExamRecord(ExamRecord record) {
-        String sql = "INSERT INTO exam_records (student_id, subject, score, total_questions, exam_date) VALUES (?, ?, ?, ?, ?)";
+        String sql = "INSERT INTO exam_records (student_id, subject, score, total_questions, exam_date, comment) VALUES (?, ?, ?, ?, ?, ?)";
         
-        try (Connection conn = dbManager.getConnection();
-             PreparedStatement pstmt = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
+        try (Connection connection = getConnection(); // Use internal getConnection logic
+             PreparedStatement pstmt = connection.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
             
             pstmt.setString(1, record.getStudentId());
             pstmt.setString(2, record.getSubject());
             pstmt.setInt(3, record.getScore());
             pstmt.setInt(4, record.getTotalQuestions());
             pstmt.setTimestamp(5, new Timestamp(record.getExamDate().getTime()));
+            pstmt.setString(6, record.getComment());
             
             int affectedRows = pstmt.executeUpdate();
 
@@ -227,10 +241,10 @@ public class ExamDAO {
      */
     public List<ExamRecord> getExamHistory(String studentId) {
         List<ExamRecord> records = new ArrayList<>();
-        String sql = "SELECT * FROM exam_records WHERE student_id = ? ORDER BY exam_date DESC";
+        String sql = "SELECT id, student_id, subject, score, total_questions, exam_date, comment FROM exam_records WHERE student_id = ? ORDER BY exam_date DESC"; // Select comment
         
-        try (Connection conn = dbManager.getConnection();
-             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+        try (Connection connection = getConnection(); // Use internal getConnection logic
+             PreparedStatement pstmt = connection.prepareStatement(sql)) {
             
             pstmt.setString(1, studentId);
             ResultSet rs = pstmt.executeQuery();
@@ -243,12 +257,12 @@ public class ExamDAO {
                 record.setScore(rs.getInt("score"));
                 record.setTotalQuestions(rs.getInt("total_questions"));
                 record.setExamDate(rs.getTimestamp("exam_date"));
+                record.setComment(rs.getString("comment"));
                 records.add(record);
             }
         } catch (SQLException e) {
             e.printStackTrace();
         }
-        
         return records;
     }
 }
