@@ -28,4 +28,5 @@ com\example\dao\QuestionDAO.class
 com\example\model\ExamRecord.class
 com\example\gui\StudentPanel$ButtonRenderer.class
 com\example\gui\AdminPanel.class
+com\example\gui\AdminPanel$3.class
 com\example\model\Student.class

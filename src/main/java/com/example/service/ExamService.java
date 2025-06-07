@@ -65,12 +65,15 @@ public class ExamService {
      */
     public ExamResult submitExam(String studentId, String subject, 
                                 List<Question> questions, Map<Integer, String> answers) {
-        Connection conn = null;
         ExamResult examResult = null;
+        DatabaseManager dbManager = DatabaseManager.getInstance();
+        
         try {
-            conn = DatabaseManager.getInstance().getConnection();
-            conn.setAutoCommit(false); // Start transaction
-
+            // 开始事务
+            dbManager.beginTransaction();
+            
+            // 获取数据库连接
+            Connection conn = dbManager.getConnection();
             ExamDAO examDAO = new ExamDAO(conn);
             StudentAnswerDetailDAO studentAnswerDetailDAO = new StudentAnswerDetailDAO(conn);
 
@@ -78,7 +81,7 @@ public class ExamService {
             int totalQuestions = questions.size();
             List<StudentAnswerDetail> answerDetails = new ArrayList<>();
 
-            // Calculate correct answers and prepare detailed records
+            // 计算正确答案数量并准备详细记录
             for (Question question : questions) {
                 String userAnswer = answers.get(question.getId());
                 if (userAnswer == null) userAnswer = "";
@@ -133,43 +136,45 @@ public class ExamService {
                 answerDetails.add(detail);
             }
             
-            // 1. Save exam record
+            // 1. 保存考试记录
             ExamRecord record = new ExamRecord(studentId, subject, correctCount, totalQuestions);
-            record.setExamDate(new java.sql.Timestamp(new java.util.Date().getTime())); // Set exam date
+            record.setExamDate(new java.sql.Timestamp(System.currentTimeMillis()));
+            record.setTotalQuestions(totalQuestions);
             
-            boolean recordSaved = examDAO.saveExamRecord(record); // record object will get ID after saving
+            boolean recordSaved = examDAO.addExamRecord(record);
             
-            if (recordSaved && record.getId() > 0) { // Ensure record is saved and has an ID
-                // 2. Set examRecordId for each detailed record and save
-                for (StudentAnswerDetail detail : answerDetails) {
-                    detail.setExamRecordId(record.getId());
-                }
+            if (!recordSaved || record.getId() <= 0) {
+                LOGGER.log(Level.SEVERE, "保存考试记录失败");
+                dbManager.rollbackTransaction();
+                return null;
+            }
+
+            // 2. 保存详细答题记录
+            for (StudentAnswerDetail detail : answerDetails) {
+                detail.setExamRecordId(record.getId());
+            }
+            
+            try {
                 studentAnswerDetailDAO.saveAllStudentAnswerDetails(answerDetails);
-                conn.commit(); // Commit transaction
-            } else {
-                conn.rollback(); // Rollback if exam record not saved
-                LOGGER.log(Level.SEVERE, "保存考试记录失败，详细答题记录未保存。执行回滚。");
+                
+                // 提交事务
+                dbManager.commitTransaction();
+                
+                // 创建并返回考试结果
+                examResult = new ExamResult(correctCount, totalQuestions, questions, answers, record.getId());
+                LOGGER.log(Level.INFO, "考试提交成功，考试记录ID: " + record.getId());
+                
+            } catch (SQLException e) {
+                LOGGER.log(Level.SEVERE, "保存答题详情失败: " + e.getMessage(), e);
+                dbManager.rollbackTransaction();
+                return null;
             }
             
-            // Return exam result
-            examResult = new ExamResult(correctCount, totalQuestions, questions, answers, record.getId()); // Pass recordId
         } catch (SQLException e) {
-            if (conn != null) {
-                try {
-                    conn.rollback(); // Rollback on any SQL exception
-                } catch (SQLException ex) {
-                    LOGGER.log(Level.SEVERE, "回滚失败：" + ex.getMessage(), ex);
-                }
-            }
-            LOGGER.log(Level.SEVERE, "提交考试时发生数据库错误：" + e.getMessage(), e);
+            LOGGER.log(Level.SEVERE, "提交考试时发生数据库错误: " + e.getMessage(), e);
+            dbManager.rollbackTransaction();
         } finally {
-            if (conn != null) {
-                try {
-                    conn.setAutoCommit(true); // Reset auto-commit
-                } catch (SQLException e) {
-                    LOGGER.log(Level.SEVERE, "重置autoCommit失败：" + e.getMessage(), e);
-                }
-            }
+            dbManager.closeConnection();
         }
         return examResult; // Return exam result
     }

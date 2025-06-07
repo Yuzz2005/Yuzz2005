@@ -13,34 +13,28 @@ public class DatabaseManager {
     private static final String DB_URL = "jdbc:mysql://localhost:3306/exam_system?useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true";
     private static final String DB_USER = "root";
     private static final String DB_PASSWORD = "Yzznb6782!";
-    private static DatabaseManager instance;
-    private Connection connection;
+    private static final DatabaseManager instance = new DatabaseManager();
+    private final ThreadLocal<Connection> connectionHolder = new ThreadLocal<>();
 
     private DatabaseManager() {
-        // Constructor no longer calls initDatabase directly
-        // The database should be initialized once at application startup via initializeDatabase() method
-        // System.out.println("DatabaseManager: Initializing database..."); // Removed logging
-        // initDatabase(); // Removed direct call
-        // System.out.println("DatabaseManager: Database initialization finished."); // Removed logging
+        // 私有构造函数
     }
 
     public static DatabaseManager getInstance() {
-        if (instance == null) {
-            System.out.println("DatabaseManager: Creating new instance.");
-            instance = new DatabaseManager();
-        }
-        // Ensure the connection is open and valid before returning
-        try {
-            if (instance.connection == null || instance.connection.isClosed()) {
-                System.out.println("DatabaseManager: Connection is null or closed. Re-establishing connection...");
-                instance.connection = DriverManager.getConnection(DB_URL, DB_USER, DB_PASSWORD);
-                System.out.println("DatabaseManager: Connection re-established successfully.");
-            }
-        } catch (SQLException e) {
-            System.err.println("DatabaseManager: Error re-establishing connection: " + e.getMessage());
-            e.printStackTrace();
-        }
         return instance;
+    }
+
+    /**
+     * 获取当前线程的数据库连接
+     * 如果连接不存在或已关闭，创建新的连接
+     */
+    private Connection getThreadConnection() throws SQLException {
+        Connection conn = connectionHolder.get();
+        if (conn == null || conn.isClosed()) {
+            conn = DriverManager.getConnection(DB_URL, DB_USER, DB_PASSWORD);
+            connectionHolder.set(conn);
+        }
+        return conn;
     }
 
     /**
@@ -48,13 +42,10 @@ public class DatabaseManager {
      * 确保只在第一次运行时执行此操作。
      */
     public void initializeDatabase() {
-        try {
+        try (Connection conn = getThreadConnection()) {
             System.out.println("DatabaseManager: Initializing database (creating tables and inserting sample data if not exists)...");
-            if (connection == null || connection.isClosed()) {
-                connection = DriverManager.getConnection(DB_URL, DB_USER, DB_PASSWORD);
-            }
-            createTables();
-            insertSampleData(); // This method will check for existing data
+            createTables(conn);
+            insertSampleData(conn); // This method will check for existing data
             System.out.println("DatabaseManager: Database initialization completed.");
         } catch (SQLException e) {
             System.err.println("DatabaseManager: Error during database initialization: " + e.getMessage());
@@ -65,7 +56,7 @@ public class DatabaseManager {
     /**
      * 创建数据库表
      */
-    private void createTables() throws SQLException {
+    private void createTables(Connection conn) throws SQLException {
         // 创建学生表
         String createStudentTable = """
             CREATE TABLE IF NOT EXISTS students (
@@ -102,7 +93,7 @@ public class DatabaseManager {
                 score INT NOT NULL,
                 total_questions INT NOT NULL,
                 exam_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                FOREIGN KEY (student_id) REFERENCES students(student_id)
+                FOREIGN KEY (student_id) REFERENCES students(student_id) ON DELETE CASCADE
             )
               """;
 
@@ -151,7 +142,7 @@ public class DatabaseManager {
 )
                     """;
 
-        Statement stmt = connection.createStatement();
+        Statement stmt = conn.createStatement();
         stmt.execute(createStudentTable);
         stmt.execute(createQuestionTable);
         stmt.execute(createExamRecordTable);
@@ -164,10 +155,10 @@ public class DatabaseManager {
     /**
      * 插入示例数据
      */
-    private void insertSampleData() throws SQLException {
+    private void insertSampleData(Connection conn) throws SQLException {
         // 检查管理员表是否已有数据
         String checkAdminData = "SELECT COUNT(*) FROM admins";
-        Statement stmtAdmin = connection.createStatement();
+        Statement stmtAdmin = conn.createStatement();
         ResultSet rsAdmin = stmtAdmin.executeQuery(checkAdminData);
         rsAdmin.next();
         boolean adminExists = rsAdmin.getInt(1) > 0;
@@ -177,7 +168,7 @@ public class DatabaseManager {
         // 如果管理员表没有数据，插入示例管理员
         if (!adminExists) {
             String insertAdmin = "INSERT INTO admins (username, password) VALUES (?, ?)";
-            PreparedStatement pstmtAdmin = connection.prepareStatement(insertAdmin);
+            PreparedStatement pstmtAdmin = conn.prepareStatement(insertAdmin);
             pstmtAdmin.setString(1, "admin");
             pstmtAdmin.setString(2, "admin123"); // 请在实际应用中加密密码
             pstmtAdmin.executeUpdate();
@@ -186,7 +177,7 @@ public class DatabaseManager {
 
         // 检查学生表是否已有数据，如果没有则插入示例学生和题目
         String checkStudentData = "SELECT COUNT(*) FROM students";
-        Statement stmtStudent = connection.createStatement();
+        Statement stmtStudent = conn.createStatement();
         ResultSet rsStudent = stmtStudent.executeQuery(checkStudentData);
         rsStudent.next();
         boolean studentExists = rsStudent.getInt(1) > 0;
@@ -195,7 +186,7 @@ public class DatabaseManager {
 
         if (!studentExists) {
             // 插入示例题目
-            insertSampleQuestions();
+            insertSampleQuestions(conn);
         }
 
     }
@@ -203,7 +194,7 @@ public class DatabaseManager {
     /**
      * 插入示例题目
      */
-    private void insertSampleQuestions() throws SQLException {
+    private void insertSampleQuestions(Connection conn) throws SQLException {
         String insertQuestion = """
             INSERT INTO questions (
                 question_text, option_a, option_b, option_c, option_d, 
@@ -211,7 +202,7 @@ public class DatabaseManager {
                 question_type, subject
             ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """;
-        PreparedStatement pstmt = connection.prepareStatement(insertQuestion);
+        PreparedStatement pstmt = conn.prepareStatement(insertQuestion);
 
         // Java单选题
         String[][] javaSingleChoiceQuestions = {
@@ -261,36 +252,57 @@ public class DatabaseManager {
 
     /**
      * 获取数据库连接
+     * 每个线程获取自己的连接实例
      */
-    public Connection getConnection() {
-        try {
-            System.out.println("DatabaseManager: getConnection() called. Connection is null: " + (connection == null) + ", isClosed: " + (connection != null && connection.isClosed())); // Added logging
-            if (connection == null || connection.isClosed()) {
-                System.out.println("DatabaseManager: Connection is null or closed. Re-initializing..."); // Added logging
-                connection = DriverManager.getConnection(DB_URL, DB_USER, DB_PASSWORD);
-                System.out.println("DatabaseManager: Re-initialization finished. New connection is null: " + (connection == null) + ", isClosed: " + (connection != null && connection.isClosed())); // Added logging
-            }
-        } catch (SQLException e) {
-            System.err.println("DatabaseManager: Error checking connection state: " + e.getMessage()); // Added logging
-            e.printStackTrace();
-            // Handle exception, maybe return null or throw a runtime exception
-        }
-        System.out.println("DatabaseManager: Returning connection."); // Added logging
-        return connection;
+    public Connection getConnection() throws SQLException {
+        return getThreadConnection();
     }
 
     /**
-     * 关闭数据库连接
+     * 关闭当前线程的数据库连接
      */
     public void closeConnection() {
         try {
-            System.out.println("DatabaseManager: closeConnection() called. Connection is null: " + (connection == null) + ", isClosed: " + (connection != null && connection.isClosed())); // Added logging
-            if (connection != null && !connection.isClosed()) {
-                connection.close();
-                System.out.println("DatabaseManager: Connection closed successfully."); // Added logging
+            Connection conn = connectionHolder.get();
+            if (conn != null && !conn.isClosed()) {
+                conn.close();
+            }
+            connectionHolder.remove(); // 从ThreadLocal中移除连接
+        } catch (SQLException e) {
+            System.err.println("DatabaseManager: Error closing connection: " + e.getMessage());
+            e.printStackTrace();
+        }
+    }
+
+    /**
+     * 开始事务
+     */
+    public void beginTransaction() throws SQLException {
+        Connection conn = getThreadConnection();
+        conn.setAutoCommit(false);
+    }
+
+    /**
+     * 提交事务
+     */
+    public void commitTransaction() throws SQLException {
+        Connection conn = getThreadConnection();
+        conn.commit();
+        conn.setAutoCommit(true);
+    }
+
+    /**
+     * 回滚事务
+     */
+    public void rollbackTransaction() {
+        try {
+            Connection conn = connectionHolder.get();
+            if (conn != null && !conn.isClosed()) {
+                conn.rollback();
+                conn.setAutoCommit(true);
             }
         } catch (SQLException e) {
-            System.err.println("DatabaseManager: Error closing connection: " + e.getMessage()); // Added logging
+            System.err.println("DatabaseManager: Error rolling back transaction: " + e.getMessage());
             e.printStackTrace();
         }
     }

@@ -473,75 +473,80 @@ public class StudentPanel extends JPanel {
     }
 
     public void showExamDetailDialog(ExamRecord record) { // Made public to be called by ButtonEditor
-        List<StudentAnswerDetail> details = studentAnswerDetailDAO.getStudentAnswerDetailsByExamRecordId(record.getId());
-        if (details.isEmpty()) {
-            JOptionPane.showMessageDialog(this, "未能加载到该次考试的详细答题记录。", "提示", JOptionPane.INFORMATION_MESSAGE);
-            return;
-        }
-        JDialog detailDialog = new JDialog(mainFrame, "考试详情 - " + record.getSubject(), true); 
-        detailDialog.setSize(700, 500);
-        detailDialog.setLocationRelativeTo(mainFrame);
-        detailDialog.setLayout(new BorderLayout());
-
-        // Display Exam Comment at the top of the dialog
-        JTextArea commentDisplayArea = new JTextArea("管理员评语: " + record.getComment());
-        commentDisplayArea.setLineWrap(true);
-        commentDisplayArea.setWrapStyleWord(true);
-        commentDisplayArea.setEditable(false);
-        commentDisplayArea.setOpaque(true);
-        commentDisplayArea.setBackground(new Color(245, 245, 220)); // Light yellow background for comments
-        commentDisplayArea.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
-        commentDisplayArea.setFont(new Font("微软雅黑", Font.ITALIC, 13));
-        
-        // Only add if there is a comment
-        if (record.getComment() != null && !record.getComment().trim().isEmpty()) {
-            detailDialog.add(commentDisplayArea, BorderLayout.NORTH);
-        }
-
-        JPanel questionsDisplayPanel = new JPanel();
-        questionsDisplayPanel.setLayout(new BoxLayout(questionsDisplayPanel, BoxLayout.Y_AXIS));
-        questionsDisplayPanel.setBorder(BorderFactory.createEmptyBorder(10,10,10,10));
-        for (int i = 0; i < details.size(); i++) {
-            StudentAnswerDetail detail = details.get(i);
-            JPanel singleQuestionPanel = new JPanel(new BorderLayout(5,5));
-            singleQuestionPanel.setBorder(BorderFactory.createCompoundBorder(
-                BorderFactory.createMatteBorder(0, 0, 1, 0, Color.LIGHT_GRAY),
-                BorderFactory.createEmptyBorder(10, 5, 10, 5)
-            ));
-            JTextArea questionTextLabel = new JTextArea((i + 1) + ". " + detail.getQuestionText());
-            questionTextLabel.setWrapStyleWord(true); questionTextLabel.setLineWrap(true);
-            questionTextLabel.setEditable(false); questionTextLabel.setOpaque(false);
-            questionTextLabel.setFont(new Font("微软雅黑", Font.BOLD, 14));
-            singleQuestionPanel.add(questionTextLabel, BorderLayout.NORTH);
-            JPanel answerPanel = new JPanel();
-            answerPanel.setLayout(new BoxLayout(answerPanel, BoxLayout.Y_AXIS));
-            answerPanel.setOpaque(false);
-            if (detail.getQuestionType() == QuestionType.SINGLE_CHOICE || detail.getQuestionType() == QuestionType.MULTIPLE_CHOICE) {
-                if (detail.getOptionA() != null) answerPanel.add(new JLabel("A. " + detail.getOptionA()));
-                if (detail.getOptionB() != null) answerPanel.add(new JLabel("B. " + detail.getOptionB()));
-                if (detail.getOptionC() != null) answerPanel.add(new JLabel("C. " + detail.getOptionC()));
-                if (detail.getOptionD() != null) answerPanel.add(new JLabel("D. " + detail.getOptionD()));
-                answerPanel.add(Box.createVerticalStrut(5));
+        try {
+            List<StudentAnswerDetail> details = studentAnswerDetailDAO.getStudentAnswerDetailsByExamRecordId(record.getId());
+            if (details.isEmpty()) {
+                JOptionPane.showMessageDialog(this, "未能加载到该次考试的详细答题记录。", "提示", JOptionPane.INFORMATION_MESSAGE);
+                return;
             }
-            String studentAnswerDisplay = formatAnswerWithOptions(detail, detail.getStudentAnswer());
-            JLabel studentAnswerLabel = new JLabel("你的答案: " + studentAnswerDisplay);
-            studentAnswerLabel.setForeground(detail.isCorrect() ? new Color(0,128,0) : Color.RED);
-            answerPanel.add(studentAnswerLabel);
-            String correctAnswerDisplay = formatAnswerWithOptions(detail, detail.getCorrectAnswer());
-            JLabel correctAnswerLabel = new JLabel("正确答案: " + correctAnswerDisplay);
-            answerPanel.add(correctAnswerLabel);
-            singleQuestionPanel.add(answerPanel, BorderLayout.CENTER);
-            questionsDisplayPanel.add(singleQuestionPanel);
+            JDialog detailDialog = new JDialog(mainFrame, "考试详情 - " + record.getSubject(), true); 
+            detailDialog.setSize(700, 500);
+            detailDialog.setLocationRelativeTo(mainFrame);
+            detailDialog.setLayout(new BorderLayout());
+
+            // Display Exam Comment at the top of the dialog
+            JTextArea commentDisplayArea = new JTextArea("管理员评语: " + record.getComment());
+            commentDisplayArea.setLineWrap(true);
+            commentDisplayArea.setWrapStyleWord(true);
+            commentDisplayArea.setEditable(false);
+            commentDisplayArea.setOpaque(true);
+            commentDisplayArea.setBackground(new Color(245, 245, 220)); // Light yellow background for comments
+            commentDisplayArea.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
+            commentDisplayArea.setFont(new Font("微软雅黑", Font.ITALIC, 13));
+            
+            // Only add if there is a comment
+            if (record.getComment() != null && !record.getComment().trim().isEmpty()) {
+                detailDialog.add(commentDisplayArea, BorderLayout.NORTH);
+            }
+
+            JPanel questionsDisplayPanel = new JPanel();
+            questionsDisplayPanel.setLayout(new BoxLayout(questionsDisplayPanel, BoxLayout.Y_AXIS));
+            questionsDisplayPanel.setBorder(BorderFactory.createEmptyBorder(10,10,10,10));
+            for (int i = 0; i < details.size(); i++) {
+                StudentAnswerDetail detail = details.get(i);
+                JPanel singleQuestionPanel = new JPanel(new BorderLayout(5,5));
+                singleQuestionPanel.setBorder(BorderFactory.createCompoundBorder(
+                    BorderFactory.createMatteBorder(0, 0, 1, 0, Color.LIGHT_GRAY),
+                    BorderFactory.createEmptyBorder(10, 5, 10, 5)
+                ));
+                JTextArea questionTextLabel = new JTextArea((i + 1) + ". " + detail.getQuestionText());
+                questionTextLabel.setWrapStyleWord(true); questionTextLabel.setLineWrap(true);
+                questionTextLabel.setEditable(false); questionTextLabel.setOpaque(false);
+                questionTextLabel.setFont(new Font("微软雅黑", Font.BOLD, 14));
+                singleQuestionPanel.add(questionTextLabel, BorderLayout.NORTH);
+                JPanel answerPanel = new JPanel();
+                answerPanel.setLayout(new BoxLayout(answerPanel, BoxLayout.Y_AXIS));
+                answerPanel.setOpaque(false);
+                if (detail.getQuestionType() == QuestionType.SINGLE_CHOICE || detail.getQuestionType() == QuestionType.MULTIPLE_CHOICE) {
+                    if (detail.getOptionA() != null) answerPanel.add(new JLabel("A. " + detail.getOptionA()));
+                    if (detail.getOptionB() != null) answerPanel.add(new JLabel("B. " + detail.getOptionB()));
+                    if (detail.getOptionC() != null) answerPanel.add(new JLabel("C. " + detail.getOptionC()));
+                    if (detail.getOptionD() != null) answerPanel.add(new JLabel("D. " + detail.getOptionD()));
+                    answerPanel.add(Box.createVerticalStrut(5));
+                }
+                String studentAnswerDisplay = formatAnswerWithOptions(detail, detail.getStudentAnswer());
+                JLabel studentAnswerLabel = new JLabel("你的答案: " + studentAnswerDisplay);
+                studentAnswerLabel.setForeground(detail.isCorrect() ? new Color(0,128,0) : Color.RED);
+                answerPanel.add(studentAnswerLabel);
+                String correctAnswerDisplay = formatAnswerWithOptions(detail, detail.getCorrectAnswer());
+                JLabel correctAnswerLabel = new JLabel("正确答案: " + correctAnswerDisplay);
+                answerPanel.add(correctAnswerLabel);
+                singleQuestionPanel.add(answerPanel, BorderLayout.CENTER);
+                questionsDisplayPanel.add(singleQuestionPanel);
+            }
+            JScrollPane scrollPane = new JScrollPane(questionsDisplayPanel);
+            scrollPane.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED);
+            detailDialog.add(scrollPane, BorderLayout.CENTER);
+            JButton closeButton = new JButton("关闭");
+            closeButton.addActionListener(e -> detailDialog.dispose());
+            JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
+            buttonPanel.add(closeButton);
+            detailDialog.add(buttonPanel, BorderLayout.SOUTH);
+            detailDialog.setVisible(true);
+        } catch (java.sql.SQLException e) {
+            JOptionPane.showMessageDialog(this, "加载考试详情时发生数据库错误: " + e.getMessage(), "错误", JOptionPane.ERROR_MESSAGE);
+            e.printStackTrace();
         }
-        JScrollPane scrollPane = new JScrollPane(questionsDisplayPanel);
-        scrollPane.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED);
-        detailDialog.add(scrollPane, BorderLayout.CENTER);
-        JButton closeButton = new JButton("关闭");
-        closeButton.addActionListener(e -> detailDialog.dispose());
-        JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
-        buttonPanel.add(closeButton);
-        detailDialog.add(buttonPanel, BorderLayout.SOUTH);
-        detailDialog.setVisible(true);
     }
 
     private String formatAnswerWithOptions(StudentAnswerDetail detail, String answerLetters) {
