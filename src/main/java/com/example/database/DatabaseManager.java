@@ -87,13 +87,17 @@ public class DatabaseManager {
         // 创建考试记录表
         String createExamRecordTable = """
             CREATE TABLE IF NOT EXISTS exam_records (
-                id INT PRIMARY KEY AUTO_INCREMENT,
-                student_id VARCHAR(50) NOT NULL,
-                subject VARCHAR(50) NOT NULL,
-                score INT NOT NULL,
-                total_questions INT NOT NULL,
-                exam_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                FOREIGN KEY (student_id) REFERENCES students(student_id) ON DELETE CASCADE
+                id              int auto_increment
+        primary key,
+    student_id      varchar(50)                         not null,
+    subject         varchar(50)                         not null,
+    score           int                                 not null,
+    total_questions int                                 not null,
+    exam_date       timestamp default CURRENT_TIMESTAMP null,
+    comment         text                                null,
+    constraint exam_records_ibfk_1
+        foreign key (student_id) references students (student_id)
+            on delete cascade
             )
               """;
 
