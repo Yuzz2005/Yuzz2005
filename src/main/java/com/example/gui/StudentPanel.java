@@ -14,23 +14,12 @@ import javax.swing.DefaultCellEditor;
 import javax.swing.table.TableCellRenderer;
 import javax.swing.table.TableColumn;
 import java.awt.*;
-import javax.swing.*;
-import javax.swing.table.DefaultTableModel;
-import javax.swing.DefaultCellEditor;
-import javax.swing.table.TableCellRenderer;
-import javax.swing.table.TableColumn;
-import java.awt.*;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.text.SimpleDateFormat;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
 
 public class StudentPanel extends JPanel {
     private MainFrame mainFrame; 
@@ -537,12 +526,20 @@ public class StudentPanel extends JPanel {
             JScrollPane scrollPane = new JScrollPane(questionsDisplayPanel);
             scrollPane.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED);
             detailDialog.add(scrollPane, BorderLayout.CENTER);
+
+            // 确保在对话框完全显示和布局后滚动到顶部
+            // 这一步必须在dialog.setVisible(true)之前执行，以确保在对话框显示时就处于顶部
+            SwingUtilities.invokeLater(() -> {
+                scrollPane.getVerticalScrollBar().setValue(0);
+            });
+
             JButton closeButton = new JButton("关闭");
             closeButton.addActionListener(e -> detailDialog.dispose());
             JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
             buttonPanel.add(closeButton);
             detailDialog.add(buttonPanel, BorderLayout.SOUTH);
             detailDialog.setVisible(true);
+
         } catch (java.sql.SQLException e) {
             JOptionPane.showMessageDialog(this, "加载考试详情时发生数据库错误: " + e.getMessage(), "错误", JOptionPane.ERROR_MESSAGE);
             e.printStackTrace();
@@ -571,15 +568,6 @@ public class StudentPanel extends JPanel {
         return String.join(", ", formattedAnswers);
     }
 
-    private String getOptionByLetter(Question question, String letter) {
-        switch (letter) {
-            case "A": return question.getOptionA();
-            case "B": return question.getOptionB();
-            case "C": return question.getOptionC();
-            case "D": return question.getOptionD();
-            default: return "";
-        }
-    }
 
     private void createQuestionDirectory() {
         questionDirectoryPanel.removeAll();
@@ -647,8 +635,6 @@ public class StudentPanel extends JPanel {
         private boolean isPushed;
         
         // Add these imports explicitly as they're in subpackages
-        private java.awt.event.MouseEvent mouseEvent;
-        private java.awt.event.ActionEvent actionEvent;
         private JTable table;
         private List<ExamRecord> records;
         private StudentPanel studentPanel; // Reference to the parent panel

@@ -6,11 +6,6 @@ import com.example.service.ExamService;
 
 import javax.swing.*;
 import java.awt.*;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.List; // 确保 List 被导入
 
 public class MainFrame extends JFrame {
 
